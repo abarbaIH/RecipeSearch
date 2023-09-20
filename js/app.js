@@ -1,12 +1,21 @@
 function iniciarApp() {
 
+    const resultado = document.querySelector('#resultado') // este es el elemento del HTML donde vamos a insertar el contenido, ya sea de favs o de consulta de la API
+
     const selectCategorias = document.querySelector('#categorias')
-    selectCategorias.addEventListener('change', seleccionarCategoria)
+    if (selectCategorias) { // este if es xk en la pag de favoritos no está y da error
+        selectCategorias.addEventListener('change', seleccionarCategoria)
+        obtenerCategorias()
+    }
+
+    // PARA LA PAGINA de FAVORITOS
+    const favoritosDiv = document.querySelector('.favoritos')
+    if (favoritosDiv) {
+        obtenerFavoritos()
+    }
 
     //Instacia de una nueva modal de bootsrap. se hace así:;
     const modal = new bootstrap.Modal('#modal', {}) //esto viene del js de bootsrap. le decimos con qué info queremos que se monte la modal y le pasamos un objeto vacío en princiopoi
-
-    obtenerCategorias()
 
     function obtenerCategorias() {
         fetch('https://www.themealdb.com/api/json/v1/1/categories.php')
@@ -16,6 +25,7 @@ function iniciarApp() {
                 console.log(error)
             })
     }
+
 
     function mostrarCategorias(categorias = []) { // le decimos que las categorías son un array por defecto
 
@@ -61,25 +71,20 @@ function iniciarApp() {
             const recetaImg = document.createElement('IMG') // creamos una etiqueta para la imagen
             recetaImg.classList.add('card-img-top') // le agregamos las clases de boostrap
             recetaImg.alt = `Imagen de la receta ${strMeal}` // le agregmaos texto alternativo con el nombre de la receta
-            recetaImg.src = strMealThumb // le damos el src de la receta con srtMealThumb que es el enlace a la imagen
+            recetaImg.src = strMealThumb ?? receta.img // le damos el src de la receta con srtMealThumb que es el enlace a la imagen. el receta.img es en caso de que sea para la pagina de favporitois y es consulta a localstorage no a la API
 
             const recetaCardBody = document.createElement('DIV')
             recetaCardBody.classList.add('card-body')
 
             const recetaHeading = document.createElement('H3')
             recetaHeading.classList.add('card-title', 'mb-3')
-            recetaHeading.textContent = strMeal
+            recetaHeading.textContent = strMeal ?? receta.title //igual receta.title es para la pag de favoritos que se consulta al localstorage y no a la API
 
             const recetaBtn = document.createElement('BUTTON')
             recetaBtn.classList.add('btn', 'btn-danger', 'w-100')
             recetaBtn.textContent = 'Ver receta'
 
-            recetaBtn.onclick = () => seleccionarReceta(idMeal)
-
-            // esto es para darle funcionalidad de abrir modal a los botones de ver receta. Es codigo de boosrtap
-            // recetaBtn.dataset.bsTarget = '#modal'
-            // recetaBtn.dataset.bsToggle = 'modal'
-
+            recetaBtn.onclick = () => seleccionarReceta(idMeal ?? receta.id) //receta.id para los favoritos del localstorage no de la API
 
             // HACEMOS QUE SE RENDERICE EL SCRIPT EN EL HTML
             recetaCardBody.appendChild(recetaHeading)
@@ -90,7 +95,7 @@ function iniciarApp() {
 
             recetaContenedor.appendChild(recetaCard)
 
-            const resultado = document.querySelector('#resultado') // este es el elemento del HTML donde vamos a insertar el contenedor con el contenido
+
             resultado.appendChild(recetaContenedor)
 
 
@@ -169,6 +174,7 @@ function iniciarApp() {
         btnFav.onclick = () => {
             if (existeIdEnFav(idMeal)) { //si existiese ya en favoritos con el return evitamos que se vuelta a agregar
                 eliminarFavorito(idMeal)
+                mostrarToast('Receta eliminada correcctamente')
                 btnFav.textContent = 'Guardar en favorito'
                 btnFav.classList.add('btn', 'btn-success', 'col')
                 return
@@ -178,6 +184,7 @@ function iniciarApp() {
                 title: strMeal,
                 img: strMealThumb
             })
+            mostrarToast('Receta agregada correcctamente')
 
             btnFav.textContent = 'Eliminar de favorito'
             btnFav.classList.add('btn', 'btn-danger', 'col')
@@ -202,6 +209,29 @@ function iniciarApp() {
         const nuevosFavoritos = favoritos.filter(favorito => favorito.id != id)
         localStorage.setItem('favoritos', JSON.stringify(nuevosFavoritos))
     }
+
+    function mostrarToast(mensaje) {
+        const toastDiv = document.querySelector('#toast')
+        const toastBody = document.querySelector('.toast-body')
+        const toast = new bootstrap.Toast(toastDiv)
+        toastBody.textContent = mensaje
+
+        toast.show()
+    }
+
+    function obtenerFavoritos() {
+        const favoritos = JSON.parse(localStorage.getItem('favoritos')) ?? [] // nos traemos el array de favoritos de localstorage
+        if (favoritos.length) {
+
+            mostrarRecetas(favoritos)
+        } else {
+            const noHayFavoritos = document.createElement('P')
+            noHayFavoritos.classList.add('fs-4', 'text-center', 'font-bold', 'mt-5')
+            noHayFavoritos.textContent = "Todavía no tienes favoritos"
+        }
+
+    }
+
     function limpiarHTML(selector) {
         while (selector.firstChild) {
             selector.removeChild(selector.firstChild)
